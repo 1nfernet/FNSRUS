@@ -78,6 +78,33 @@ function refreshIcons() {
   window.lucide?.createIcons();
 }
 
+const themeToggle = document.getElementById("theme-toggle");
+const themeStorageKey = "fnsrus-theme";
+
+function applyTheme(theme, persist = false) {
+  const dark = theme === "dark";
+  const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  themeToggle.setAttribute("aria-pressed", String(dark));
+  themeToggle.setAttribute("aria-label", label);
+  themeToggle.title = label;
+  themeToggle.replaceChildren(icon(dark ? "sun" : "moon"));
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#151b18" : "#176b50";
+  if (persist) {
+    try { localStorage.setItem(themeStorageKey, dark ? "dark" : "light"); }
+    catch { /* Theme still applies when storage is unavailable. */ }
+  }
+  refreshIcons();
+}
+
+let savedTheme = "light";
+try { if (localStorage.getItem(themeStorageKey) === "dark") savedTheme = "dark"; }
+catch { /* Default to light when storage is unavailable. */ }
+applyTheme(savedTheme);
+themeToggle.addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+});
+
 export function validateIdentifier(value) {
   if (!/^(?:[0-9]{10}|[0-9]{12}|[0-9]{13}|[0-9]{15})$/.test(value)) {
     return "Введите ИНН из 10 или 12 цифр либо ОГРН из 13 или 15 цифр.";
