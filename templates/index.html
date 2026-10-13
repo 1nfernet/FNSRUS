@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b50">
+  <title>ФНС РУС — Проверка контрагента</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/style.css?v=1">
+  <script src="/static/vendor/lucide.min.js" defer></script>
+  <script type="module" src="/static/app.js?v=1"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><i data-lucide="file-check-2"></i></span><div><div class="brand-name">ФНС РУС</div><div class="brand-caption">Проверка контрагента</div></div></div>
+      <span class="source-label"><span class="status-dot" aria-hidden="true"></span>Открытые источники</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="search-section" aria-labelledby="search-heading">
+      <h1 id="search-heading">Проверка контрагента</h1>
+      <form id="check-form" novalidate>
+        <label for="identifier">ИНН или ОГРН</label>
+        <div class="search-controls">
+          <input id="identifier" name="identifier" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="15" placeholder="7707083893" aria-describedby="form-message" autofocus>
+          <button id="check-button" class="button button-primary" type="submit"><i data-lucide="search" aria-hidden="true"></i><span>Проверить</span></button>
+          <button id="clear-button" class="button button-secondary" type="button" title="Очистить форму и результат"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>Очистить</span></button>
+        </div>
+      </form>
+      <div id="form-message" class="form-message" role="status" aria-live="polite"></div>
+    </section>
+
+    <section id="empty-state" class="empty-state" aria-label="Результат проверки">
+      <i data-lucide="files" aria-hidden="true"></i>
+      <h2>Результат проверки</h2>
+      <p>Нет данных</p>
+    </section>
+
+    <article id="result" hidden aria-label="Карточка контрагента">
+      <div class="result-heading">
+        <div><span class="overline">Карточка контрагента</span><h2 id="company-name"></h2></div>
+        <button id="copy-all" class="button button-secondary" type="button"><i data-lucide="copy" aria-hidden="true"></i><span>Копировать всё</span></button>
+      </div>
+      <div id="verdict-summary" class="verdict-band" role="status"></div>
+      <div id="coverage-summary" class="coverage-summary"></div>
+      <nav id="section-nav" class="section-nav" aria-label="Разделы карточки"></nav>
+      <div id="sections"></div>
+      <details class="raw-data"><summary>Исходные данные</summary><pre id="raw-json"></pre></details>
+    </article>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><span>ФНС РУС</span><p>Сведения из открытых источников. Не является официальной выпиской ФНС или юридическим заключением.</p></div></footer>
+  <div id="copy-status" class="copy-status" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
