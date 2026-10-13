@@ -50,7 +50,7 @@ venv, `.env`, SQLite и резервные копии. Пример переда
 
 ```powershell
 scp -r C:/_project_/FNSRUS/templates C:/_project_/FNSRUS/static C:/_project_/FNSRUS/systemd C:/_project_/FNSRUS/nginx C:/_project_/FNSRUS/docs root@192.168.0.105:/srv/mcp-fns/
-scp C:/_project_/FNSRUS/server.py C:/_project_/FNSRUS/test_server.py C:/_project_/FNSRUS/requirements.txt C:/_project_/FNSRUS/README.md C:/_project_/FNSRUS/LICENSE C:/_project_/FNSRUS/.env.example root@192.168.0.105:/srv/mcp-fns/
+scp C:/_project_/FNSRUS/server.py C:/_project_/FNSRUS/api_fns.py C:/_project_/FNSRUS/test_server.py C:/_project_/FNSRUS/VERSION C:/_project_/FNSRUS/requirements.txt C:/_project_/FNSRUS/README.md C:/_project_/FNSRUS/LICENSE C:/_project_/FNSRUS/.env.example root@192.168.0.105:/srv/mcp-fns/
 ```
 
 На сервере:
@@ -58,12 +58,12 @@ scp C:/_project_/FNSRUS/server.py C:/_project_/FNSRUS/test_server.py C:/_project
 ```bash
 cd /srv/mcp-fns
 chown -R deploy:www-data templates static systemd nginx docs
-chown deploy:www-data server.py test_server.py requirements.txt README.md LICENSE .env.example
+chown deploy:www-data server.py api_fns.py test_server.py VERSION requirements.txt README.md LICENSE .env.example
 find templates static systemd nginx docs -type d -exec chmod 0750 {} +
 find templates static systemd nginx docs -type f -exec chmod 0640 {} +
 runuser -u deploy -- /home/deploy/.local/bin/uv venv .venv --python /usr/bin/python3
 runuser -u deploy -- /home/deploy/.local/bin/uv pip install --python .venv/bin/python -r requirements.txt
-runuser -u deploy -- .venv/bin/python -m py_compile server.py
+runuser -u deploy -- .venv/bin/python -m py_compile server.py api_fns.py
 runuser -u deploy -- .venv/bin/python -m unittest test_server -v
 ```
 
@@ -88,9 +88,16 @@ install -m 0600 .env.example /etc/mcp-fns.env
 ```
 
 Отредактируйте его непосредственно на сервере и перезапустите сервис.
-`FNS_API_KEY` не используется, значение должно оставаться пустым.
+`FNS_API_KEY` можно задать как начальный ключ API-ФНС; предпочтительнее настройка
+через UI, чтобы не менять окружение и не перезапускать сервис. В шаблоне ключ пустой.
 Основные параметры: `HOST`, `PORT`, `LOG_LEVEL`, `UVX_PATH`,
-`MCP_FNS_REGISTRIES_DB`. Смена порта требует соответствующего изменения Nginx.
+`MCP_FNS_REGISTRIES_DB`, `FNS_SETTINGS_PATH`. Смена порта требует соответствующего изменения Nginx.
+
+Сохранённые через UI настройки находятся в `/var/lib/mcp-fns/api-fns-settings.json`
+с владельцем deploy и правами 0600. Этот файл содержит секрет: не выводите его
+в журнал, не включайте в Git, обычные архивы проекта или общедоступные резервные
+копии. Явно сохранённые настройки имеют приоритет над ключом из окружения;
+удаление ключа в UI отключает интеграцию и после перезапуска.
 
 Юнит задаёт 512 МБ RAM, 80% CPU, перезапуск через 5 секунд при сбое,
 чтение проекта без записи и отдельный `/var/lib/mcp-fns` для реестров.
@@ -170,7 +177,16 @@ FastAPI доступен только через loopback; Basic-auth можно
 паролей, токенов и журналов. `.gitignore` исключает эти файлы,
 `.gitattributes` фиксирует LF для текста.
 
-Создайте локальный репозиторий и первый коммит. Нельзя автоматически выполнять
-`git remote add`, `git push` или другие операции публикации. Дождитесь отдельной
-команды пользователя. Авторство настраивается только в конфигурации этого
-репозитория, глобальные настройки не изменяются.
+Исходники опубликованы в https://github.com/DgekStr/FNSRUS.
+Для воспроизводимой установки используйте тег `1.0`, а не изменяемую ветку:
+
+```bash
+git clone --branch 1.0 --depth 1 https://github.com/DgekStr/FNSRUS.git FNSRUS
+cd FNSRUS
+cat VERSION
+```
+
+Git и GitHub Release содержат только исходники, документацию и скриншоты.
+Рабочую базу и файл ключа переносите отдельно по защищённому каналу.
+Публикация обновлений выполняется только по явному поручению владельца.
+Авторство настраивается локально в репозитории, глобальные настройки не меняются.

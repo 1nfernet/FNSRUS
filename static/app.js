@@ -16,6 +16,8 @@ const LABELS = {
   pb_fns_check_date: "Дата проверки данных ФНС", fssp_check_date: "Дата проверки ФССП", kad_check_date: "Дата проверки КАД", registries_check_date: "Дата проверки реестров",
   cache_age_hours: "Возраст сохранённых данных, ч", fetched_at: "Дата получения", severity: "Значимость", description: "Описание", details: "Подробности", source: "Источник",
   amount_rub: "Сумма, руб.", count: "Количество", level: "Уровень", title: "Название", url: "Ссылка", reason: "Причина", directors_history: "История руководителей",
+  api_fns: "API-ФНС", egr: "Сведения ЕГРЮЛ / ЕГРИП", check: "Аналитика", method: "Метод", api_fns_check_date: "Дата проверки API-ФНС",
+  items: "Записи",
 };
 
 const VALUES = {
@@ -25,6 +27,10 @@ const VALUES = {
   safe_to_proceed: "Можно работать", manual_review_required: "Требуется проверка", high_risk_do_not_proceed: "Высокий риск", impossible_contractor_defunct: "Контрагент прекратил деятельность",
   open: "Открытые источники", inn: "ИНН", ogrn: "ОГРН", egrul: "ЕГРЮЛ / ЕГРИП", efrsb: "ЕФРСБ", fssp: "ФССП", kad: "Картотека арбитражных дел",
   pb_fns: "Открытые данные ФНС", registries: "Локальные реестры ФНС", fns_disqualified: "Реестр дисквалифицированных лиц ФНС",
+  api_fns: "API-ФНС", egr: "Сведения ЕГРЮЛ / ЕГРИП", check: "Аналитика",
+  api_access_denied: "Нет доступа к API-ФНС", api_quota: "Лимит API-ФНС исчерпан", api_unavailable: "API-ФНС недоступен",
+  api_invalid_response: "Некорректный ответ API-ФНС", api_company_mismatch: "Несовпадение карточки API-ФНС", api_timeout: "Таймаут API-ФНС",
+  source_unavailable: "Источник недоступен", api_response_large: "Ответ API-ФНС слишком большой",
   mass_address: "Массовый адрес", mass_director: "Массовый руководитель", disqualified_director: "Дисквалификация руководителя", bankruptcy_records: "Банкротство",
   tax_debts: "Налоговая задолженность", enforcement_proceedings: "Исполнительные производства", active_lawsuits: "Арбитражные дела",
   registry_empty: "Реестр не загружен", registry_stale: "Реестр устарел", captcha_required: "Требуется код с картинки", invalid_input: "Некорректный идентификатор",
@@ -39,6 +45,7 @@ const SECTIONS = [
   { id: "risks", title: "Риски", icon: "shield-alert" },
   { id: "verdict", title: "Вердикт", icon: "clipboard-check" },
   { id: "okved", title: "ОКВЭД", icon: "list-tree" },
+  { id: "api-fns", title: "Аналитика API-ФНС", icon: "file-search" },
   { id: "sources", title: "Источники и актуальность", icon: "database" },
 ];
 
@@ -94,6 +101,7 @@ export function collectLeaves(value, path = []) {
 
 function sectionFor(path) {
   const [root, field] = path;
+  if (root === "api_fns") return "api-fns";
   if (root === "card") {
     if (["status", "registration"].includes(field)) return "status";
     if (["director", "directors_history"].includes(field)) return "leadership";
@@ -114,6 +122,7 @@ function fieldLabel(path) {
     if (/^[0-9]+$/.test(part)) return `№ ${Number(part) + 1}`;
     if (part === "full" && path.includes("name")) return "Полное наименование";
     if (part === "full" && path.includes("address")) return "Полный адрес";
+    if (/[А-Яа-яЁё]/.test(part)) return part;
     return LABELS[part] || `Дополнительное поле ${index + 1}`;
   }).join(" · ");
 }
@@ -211,6 +220,7 @@ function renderReport(data) {
   sectionContainer.replaceChildren();
   navigation.replaceChildren();
   for (const section of SECTIONS) {
+    if (section.id === "api-fns" && !groups[section.id].length) continue;
     const link = element("a", "", section.title);
     link.href = `#${section.id}`;
     navigation.append(link);
@@ -270,7 +280,7 @@ form.addEventListener("submit", async event => {
   resultElement.hidden = true;
   emptyState.hidden = true;
   setBusy(true);
-  setMessage("Получаем сведения из открытых источников…");
+  setMessage("Получаем сведения из источников…");
   try {
     const response = await fetch("/api/check", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -313,5 +323,86 @@ document.getElementById("clear-button").addEventListener("click", () => {
 document.getElementById("copy-all").addEventListener("click", event => {
   if (report) copyWithFeedback(event.currentTarget, JSON.stringify(report, null, 2), "Копировать всё");
 });
+
+const settingsDialog = document.getElementById("api-settings");
+const settingsForm = document.getElementById("settings-form");
+const apiKeyInput = document.getElementById("api-key");
+const apiEnabled = document.getElementById("api-enabled");
+const settingsMessage = document.getElementById("settings-message");
+let apiSettings = { configured: false, enabled: false };
+let settingsBusy = false;
+
+function showSettings(data) {
+  apiSettings = data;
+  apiEnabled.checked = data.enabled;
+  document.getElementById("source-name").textContent = data.enabled ? "API-ФНС + открытые источники" : "Открытые источники";
+  const state = document.getElementById("settings-state");
+  state.textContent = data.configured ? (data.enabled ? "API-ФНС подключён" : "Ключ сохранён. API-ФНС отключён") : "API-ФНС не подключён";
+  if (data.verified_at) state.textContent += ` · Доступ проверен ${displayValue(data.verified_at)}`;
+  apiKeyInput.placeholder = data.configured ? "Новый ключ или ссылка для замены" : "Введите ключ или ссылку регистрации";
+  document.getElementById("settings-test").disabled = !data.configured;
+  document.getElementById("settings-delete").disabled = !data.configured;
+}
+
+async function settingsRequest(method = "GET", body, suffix = "") {
+  const response = await fetch(`/api/settings/api-fns${suffix}`, {
+    method, headers: { "Content-Type": "application/json", "X-FNS-Settings": "1" },
+    body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store",
+    signal: AbortSignal.timeout(20000),
+  });
+  let data;
+  try { data = await response.json(); }
+  catch { throw new Error("Сервер вернул некорректный ответ настроек."); }
+  if (!response.ok) throw new Error(data.message || "Не удалось изменить настройки API.");
+  return data;
+}
+
+function settingsFeedback(text, isError = false) {
+  settingsMessage.textContent = text;
+  settingsMessage.classList.toggle("error", isError);
+}
+
+async function settingsAction(action, successText) {
+  if (settingsBusy) return;
+  settingsBusy = true;
+  settingsFeedback("Проверяем настройки…");
+  for (const control of settingsForm.querySelectorAll("input,button")) control.disabled = true;
+  try {
+    const data = await action();
+    apiKeyInput.value = "";
+    showSettings(data);
+    settingsFeedback(successText);
+  } catch (error) {
+    settingsFeedback(error.name === "TimeoutError" ? "API-ФНС не ответил вовремя. Попробуйте позже." : error.message, true);
+  } finally {
+    settingsBusy = false;
+    for (const control of settingsForm.querySelectorAll("input,button")) control.disabled = false;
+    document.getElementById("settings-test").disabled = !apiSettings.configured;
+    document.getElementById("settings-delete").disabled = !apiSettings.configured;
+  }
+}
+
+document.getElementById("settings-open").addEventListener("click", async () => {
+  apiKeyInput.value = "";
+  settingsFeedback("");
+  document.getElementById("settings-security").hidden = location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname);
+  settingsDialog.showModal();
+  try { showSettings(await settingsRequest()); }
+  catch (error) { settingsFeedback(error.message, true); }
+});
+document.getElementById("settings-close").addEventListener("click", () => settingsDialog.close());
+settingsDialog.addEventListener("close", () => { apiKeyInput.value = ""; });
+settingsForm.addEventListener("submit", event => {
+  event.preventDefault();
+  const key = apiKeyInput.value.trim();
+  if (key && (key.length < 8 || /[^\x21-\x7e]/.test(key))) { settingsFeedback("Проверьте формат API-ключа.", true); return; }
+  if (apiEnabled.checked && !key && !apiSettings.configured) { settingsFeedback("Введите API-ключ.", true); apiKeyInput.focus(); return; }
+  settingsAction(() => settingsRequest("POST", { enabled: apiEnabled.checked, ...(key ? { api_key: key } : {}) }), "Настройки сохранены.");
+});
+document.getElementById("settings-test").addEventListener("click", () => settingsAction(() => settingsRequest("POST", undefined, "/test"), "Доступ к API-ФНС подтверждён."));
+document.getElementById("settings-delete").addEventListener("click", () => {
+  if (confirm("Удалить сохранённый API-ключ?")) settingsAction(() => settingsRequest("DELETE"), "Ключ удалён. Используются открытые источники.");
+});
+settingsRequest().then(showSettings).catch(() => {});
 window.addEventListener("load", refreshIcons, { once: true });
 refreshIcons();

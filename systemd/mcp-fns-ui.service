@@ -18,6 +18,7 @@ Environment=LOG_LEVEL=INFO
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=MCP_FNS_REGISTRIES_DB=/var/lib/mcp-fns/registries.sqlite
+Environment=FNS_SETTINGS_PATH=/var/lib/mcp-fns/api-fns-settings.json
 EnvironmentFile=-/etc/mcp-fns.env
 ExecStart=/srv/mcp-fns/.venv/bin/python /srv/mcp-fns/server.py
 Restart=on-failure

@@ -14,6 +14,7 @@ env/
 *.sqlite3-wal
 *.sqlite3-shm
 data/
+api-fns-settings.json
 .candidate/
 deployment-backup/
 backups/

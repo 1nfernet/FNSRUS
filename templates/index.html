@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#176b50">
   <title>ФНС РУС — Проверка контрагента</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/static/style.css?v=1">
+  <link rel="stylesheet" href="/static/style.css?v=2">
   <script src="/static/vendor/lucide.min.js" defer></script>
-  <script type="module" src="/static/app.js?v=1"></script>
+  <script type="module" src="/static/app.js?v=3"></script>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
       <div class="brand"><span class="brand-mark" aria-hidden="true"><i data-lucide="file-check-2"></i></span><div><div class="brand-name">ФНС РУС</div><div class="brand-caption">Проверка контрагента</div></div></div>
-      <span class="source-label"><span class="status-dot" aria-hidden="true"></span>Открытые источники</span>
+      <div class="header-actions"><span id="source-label" class="source-label"><span class="status-dot" aria-hidden="true"></span><span id="source-name">Открытые источники</span></span><button id="settings-open" class="icon-button" type="button" title="Настройки API" aria-label="Настройки API"><i data-lucide="settings" aria-hidden="true"></i></button></div>
     </div>
   </header>
 
@@ -51,6 +51,18 @@
     </article>
   </main>
 
+  <dialog id="api-settings" class="settings-dialog" aria-labelledby="settings-heading">
+    <div class="settings-heading"><h2 id="settings-heading">Настройки API</h2><button id="settings-close" class="icon-button" type="button" title="Закрыть настройки" aria-label="Закрыть настройки"><i data-lucide="x" aria-hidden="true"></i></button></div>
+    <form id="settings-form" autocomplete="off">
+      <div id="settings-state" class="settings-state" role="status">Загрузка…</div>
+      <div id="settings-security" class="security-warning" hidden>Соединение без HTTPS. Вводите ключ только в доверенной локальной сети.</div>
+      <label class="toggle-label" for="api-enabled"><input id="api-enabled" type="checkbox"><span>Использовать API-ФНС</span></label>
+      <label for="api-key">API-ключ или ссылка api-fns.ru</label>
+      <input id="api-key" type="password" autocomplete="new-password" spellcheck="false" autocapitalize="none" maxlength="1024" placeholder="Введите ключ или ссылку регистрации" aria-describedby="settings-message">
+      <div class="settings-actions"><button id="settings-save" class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>Сохранить</span></button><button id="settings-test" class="button button-secondary" type="button"><i data-lucide="plug" aria-hidden="true"></i><span>Проверить доступ</span></button><button id="settings-delete" class="icon-button delete-key" type="button" title="Удалить сохранённый ключ" aria-label="Удалить сохранённый ключ"><i data-lucide="trash-2" aria-hidden="true"></i></button></div>
+      <div id="settings-message" class="form-message" role="status" aria-live="polite"></div>
+    </form>
+  </dialog>
   <footer class="site-footer"><div class="container footer-inner"><span>ФНС РУС</span><p>Сведения из открытых источников. Не является официальной выпиской ФНС или юридическим заключением.</p></div></footer>
   <div id="copy-status" class="copy-status" role="status" aria-live="polite" hidden></div>
 </body>
